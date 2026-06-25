@@ -1,0 +1,48 @@
+[project]
+name = "wagtail-typst"
+version = "0.1.0"
+description = "Typst fields and blocks for Wagtail — author Typst markup and render it as HTML."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Sakti Dwi Cahyono", email = "me@saktidwicahyono.name" }
+]
+requires-python = ">=3.9"
+keywords = ["wagtail", "django", "typst", "cms", "html"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Wagtail",
+    "Framework :: Wagtail :: 6",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Text Processing :: Markup :: HTML",
+]
+dependencies = [
+    "Django>=4.2",
+    "wagtail>=6.0",
+    "typst>=0.13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/saktidwicahyono/wagtail-typst"
+Repository = "https://github.com/saktidwicahyono/wagtail-typst"
+Issues = "https://github.com/saktidwicahyono/wagtail-typst/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.24,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+pythonpath = ["."]
+python_files = ["test_*.py"]
+testpaths = ["tests"]

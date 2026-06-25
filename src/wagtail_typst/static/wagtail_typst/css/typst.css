@@ -1,0 +1,20 @@
+/* Admin styling for the Typst source editor. */
+textarea.typst-input {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+        "Liberation Mono", monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    tab-size: 2;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+}
+
+/* Default front-end wrapper for rendered Typst content. */
+.typst-content :where(h1, h2, h3, h4, h5, h6) {
+    margin-top: 1em;
+}
+
+.typst-content table {
+    border-collapse: collapse;
+}
