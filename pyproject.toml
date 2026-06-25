@@ -7,7 +7,7 @@ license = "MIT"
 authors = [
     { name = "Sakti Dwi Cahyono", email = "me@saktidwicahyono.name" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 keywords = ["wagtail", "django", "typst", "cms", "html"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -17,9 +17,6 @@ classifiers = [
     "Framework :: Wagtail :: 6",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
