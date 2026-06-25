@@ -125,7 +125,9 @@ def _render_with_cli(source: str) -> str:
             "Install Typst or set WAGTAIL_TYPST_CLI_PATH."
         ) from exc
     except subprocess.TimeoutExpired as exc:
-        raise TypstCompileError(f"Typst compilation timed out after {timeout}s.") from exc
+        raise TypstCompileError(
+            f"Typst compilation timed out after {timeout}s."
+        ) from exc
 
     if proc.returncode != 0:
         stderr = proc.stderr.decode("utf-8", "replace")
@@ -151,7 +153,9 @@ def _diagnostics(exc: Exception) -> str:
         value = getattr(exc, attr, None)
         if not value:
             continue
-        parts.append("\n".join(value) if isinstance(value, (list, tuple)) else str(value))
+        parts.append(
+            "\n".join(value) if isinstance(value, (list, tuple)) else str(value)
+        )
     return "\n".join(parts)
 
 
