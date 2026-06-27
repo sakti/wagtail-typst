@@ -17,11 +17,27 @@ Block tag (compiles its literal/rendered contents)::
 from __future__ import annotations
 
 from django import template
+from django.templatetags.static import static
+from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from ..compiler import TypstCompileError, compile_typst
 
 register = template.Library()
+
+
+@register.simple_tag(name="wagtail_typst_css")
+def wagtail_typst_css() -> SafeString:
+    """Render a ``<link>`` to the front-end stylesheet for Typst content.
+
+    Drop ``{% wagtail_typst_css %}`` into your base template's ``<head>``. The
+    stylesheet bundles Libertinus Serif so the HTML output uses the same default
+    font as Typst's PDF export, and applies the ``.typst-content`` wrapper
+    styles. Requires ``django.contrib.staticfiles`` (run ``collectstatic`` for
+    production).
+    """
+    href = static("wagtail_typst/css/typst-content.css")
+    return format_html('<link rel="stylesheet" href="{}">', href)
 
 
 @register.filter(name="typst", is_safe=True)

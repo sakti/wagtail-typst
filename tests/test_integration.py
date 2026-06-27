@@ -65,3 +65,10 @@ def test_typst_block_tag():
     )
     rendered = template.render(Context({}))
     assert "<strong>bold</strong>" in rendered
+
+
+def test_wagtail_typst_css_tag():
+    template = Template("{% load wagtail_typst_tags %}{% wagtail_typst_css %}")
+    rendered = template.render(Context({}))
+    assert "<link" in rendered
+    assert "wagtail_typst/css/typst-content.css" in rendered

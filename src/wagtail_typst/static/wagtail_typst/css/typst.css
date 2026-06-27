@@ -10,11 +10,6 @@ textarea.typst-input {
     overflow-x: auto;
 }
 
-/* Default front-end wrapper for rendered Typst content. */
-.typst-content :where(h1, h2, h3, h4, h5, h6) {
-    margin-top: 1em;
-}
-
-.typst-content table {
-    border-collapse: collapse;
-}
+/* Front-end rendering styles (including the bundled Libertinus Serif font that
+ * matches Typst's default) live in typst-content.css, loaded on the public site
+ * via {% wagtail_typst_css %}. */

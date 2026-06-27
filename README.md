@@ -77,6 +77,24 @@ The block renders inside a wrapper element:
 <div class="typst-content"> ... compiled HTML ... </div>
 ```
 
+### Matching Typst's default font
+
+Typst's HTML export emits only semantic markup, so by default the browser
+renders it in its own default font instead of the **Libertinus Serif** font
+Typst uses for PDF output. To make the HTML match, load the bundled stylesheet
+in your base template's `<head>`:
+
+```django
+{% load wagtail_typst_tags %}
+{% wagtail_typst_css %}
+```
+
+This ships Libertinus Serif for body text and DejaVu Sans Mono for `code`/raw
+blocks (Typst's defaults, as WOFF2) and applies them to the `.typst-content`
+wrapper. It needs `django.contrib.staticfiles`; run `collectstatic` for
+production. If you set a custom `WAGTAIL_TYPST_WRAPPER_CLASS`, add matching
+`font-family` rules yourself.
+
 ### Template tag & filter
 
 ```django
@@ -131,4 +149,11 @@ uv run pytest
 
 ## License
 
-MIT
+MIT, except for the bundled fonts in
+`wagtail_typst/static/wagtail_typst/fonts/`:
+
+- **Libertinus Serif** (body text) — SIL Open Font License 1.1, see
+  `fonts/OFL.txt`. Copyright © 2012–2024 The Libertinus Project Authors.
+- **DejaVu Sans Mono** (`code`/raw) — Bitstream Vera / Arev license, see
+  `fonts/LICENSE-DejaVu.txt`. Copyright © 2003 Bitstream, Inc. and © 2006
+  Tavmjong Bah.

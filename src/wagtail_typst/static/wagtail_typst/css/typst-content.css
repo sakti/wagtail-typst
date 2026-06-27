@@ -1,0 +1,95 @@
+/* Front-end styling for rendered Typst content.
+ *
+ * Include this on pages that display Typst output, e.g. in your base
+ * template's <head>:
+ *
+ *     {% load wagtail_typst_tags %}
+ *     {% wagtail_typst_css %}
+ *
+ * It bundles the same default fonts Typst uses for its PDF output so the HTML
+ * export matches: Libertinus Serif for body text (SIL Open Font License, see
+ * fonts/OFL.txt) and DejaVu Sans Mono for code/raw (Bitstream Vera license, see
+ * fonts/LICENSE-DejaVu.txt).
+ */
+
+@font-face {
+    font-family: "Libertinus Serif";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/LibertinusSerif-Regular.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/LibertinusSerif-Italic.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/LibertinusSerif-Bold.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Libertinus Serif";
+    font-style: italic;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/LibertinusSerif-BoldItalic.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "DejaVu Sans Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/DejaVuSansMono-Regular.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "DejaVu Sans Mono";
+    font-style: oblique;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/DejaVuSansMono-Oblique.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "DejaVu Sans Mono";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/DejaVuSansMono-Bold.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "DejaVu Sans Mono";
+    font-style: oblique;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/DejaVuSansMono-BoldOblique.woff2") format("woff2");
+}
+
+.typst-content {
+    font-family: "Libertinus Serif", "Linux Libertine O", "Linux Libertine",
+        Georgia, "Times New Roman", serif;
+}
+
+.typst-content :where(code, pre, kbd, samp) {
+    font-family: "DejaVu Sans Mono", ui-monospace, SFMono-Regular, "SF Mono",
+        Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.typst-content :where(h1, h2, h3, h4, h5, h6) {
+    margin-top: 1em;
+}
+
+.typst-content table {
+    border-collapse: collapse;
+}
