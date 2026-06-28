@@ -27,6 +27,20 @@ jobs:
       - name: Ruff format check
         run: uvx ruff format --check src tests
 
+  types:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Type check with ty
+        run: uv run --with ty ty check src tests
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -49,7 +63,7 @@ jobs:
   build:
     name: Build & check package
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, types, test]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
