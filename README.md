@@ -118,8 +118,10 @@ All settings are optional and namespaced with `WAGTAIL_TYPST_`:
 | --- | --- | --- |
 | `WAGTAIL_TYPST_BACKEND` | `"binding"` | `"binding"` (bundled `typst` package) or `"cli"` (shell out to a `typst` executable). |
 | `WAGTAIL_TYPST_CLI_PATH` | `"typst"` | Path/name of the executable for the `cli` backend. |
-| `WAGTAIL_TYPST_CLI_TIMEOUT` | `30` | Compilation timeout (seconds) for the `cli` backend. |
-| `WAGTAIL_TYPST_FULL_DOCUMENT` | `False` | Return the whole `<html>` document instead of just the rendered `<body>`. |
+| `WAGTAIL_TYPST_TIMEOUT` | `30` | Compilation timeout (seconds). Bounds the `cli` subprocess; for the `binding` backend it runs compilation in a separate process that is terminated on expiry. `None` disables it (binding then runs in-process — trusted input only). |
+| `WAGTAIL_TYPST_SANITIZE` | `True` | Sanitize compiled HTML (strip `<script>`, event handlers, dangerous URLs) before marking it safe, keeping formatting and MathML. Turn off only if every author of Typst source is fully trusted. Applies to embedded output only. |
+| `WAGTAIL_TYPST_ROOT` | `None` | Directory that Typst `read()` / `image()` / `include` are confined to. `None` uses an isolated empty directory so untrusted markup cannot read project files. Point it at an asset directory to allow embedding those files. |
+| `WAGTAIL_TYPST_FULL_DOCUMENT` | `False` | Return the whole `<html>` document instead of just the rendered `<body>`. **Not sanitized** — trusted input only. |
 | `WAGTAIL_TYPST_WRAPPER_CLASS` | `"typst-content"` | CSS class on the block wrapper element. |
 | `WAGTAIL_TYPST_CACHE` | `True` | Cache compiled HTML keyed on the source hash. |
 | `WAGTAIL_TYPST_CACHE_ALIAS` | `"default"` | Django cache alias used when caching is enabled. |

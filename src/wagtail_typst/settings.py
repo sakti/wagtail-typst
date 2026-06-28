@@ -20,6 +20,16 @@ DEFAULTS: dict[str, Any] = {
     "CLI_PATH": "typst",
     # Return the whole ``<html>`` document instead of just the rendered body.
     "FULL_DOCUMENT": False,
+    # Sanitize compiled HTML before marking it safe. Strips <script>, event
+    # handlers and dangerous URLs while preserving formatting and MathML. Keep
+    # this on unless every author of Typst source is fully trusted. Only applies
+    # to embedded output (FULL_DOCUMENT=False).
+    "SANITIZE": True,
+    # Project root that Typst's ``read()`` / ``image()`` / ``include`` are
+    # confined to. ``None`` uses an isolated empty directory so untrusted markup
+    # cannot read project files (settings, .env, the database, ...). Point it at
+    # a directory of assets only if you intentionally want authors to embed them.
+    "ROOT": None,
     # CSS class applied to the wrapper element by the block/filter helpers.
     "WRAPPER_CLASS": "typst-content",
     # Cache compiled HTML keyed on the source hash.
@@ -28,8 +38,11 @@ DEFAULTS: dict[str, Any] = {
     "CACHE_ALIAS": "default",
     # Cache timeout in seconds. ``None`` means "cache forever".
     "CACHE_TIMEOUT": None,
-    # Compilation timeout in seconds for the "cli" backend.
-    "CLI_TIMEOUT": 30,
+    # Compilation timeout in seconds. For the "cli" backend this bounds the
+    # subprocess; for the "binding" backend it runs compilation in an isolated
+    # process that is terminated on expiry. ``None`` disables the timeout (the
+    # binding backend then compiles in-process — only do this for trusted input).
+    "TIMEOUT": 30,
 }
 
 

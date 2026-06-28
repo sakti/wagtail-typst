@@ -26,6 +26,7 @@ dependencies = [
     "Django>=4.2",
     "wagtail>=6.0",
     "typst>=0.13",
+    "nh3>=0.2",
 ]
 
 [project.optional-dependencies]

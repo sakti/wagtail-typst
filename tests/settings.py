@@ -36,6 +36,10 @@ CACHES = {
     }
 }
 
+# Run the binding backend in-process for a fast, deterministic suite. The
+# isolated-process timeout path is exercised explicitly in test_security.py.
+WAGTAIL_TYPST_TIMEOUT = None
+
 STATIC_URL = "/static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

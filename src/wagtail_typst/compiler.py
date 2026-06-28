@@ -14,6 +14,18 @@ Two backends are supported (selected via the ``WAGTAIL_TYPST_BACKEND`` setting):
     Shells out to a ``typst`` executable (``WAGTAIL_TYPST_CLI_PATH``). Useful if
     you want to pin a specific compiler version system-wide.
 
+Security
+--------
+Typst markup is treated as **untrusted** by default (in Wagtail, content editors
+are only semi-trusted). Three protections apply:
+
+* The compiled HTML is sanitized (``WAGTAIL_TYPST_SANITIZE``) before it is marked
+  safe, stripping ``<script>``, event handlers and dangerous URLs.
+* Compilation is confined to an isolated project root (``WAGTAIL_TYPST_ROOT``) so
+  ``read()`` / ``image()`` cannot reach project files.
+* Compilation is time-bounded (``WAGTAIL_TYPST_TIMEOUT``); the binding backend
+  runs in a separate process that is terminated on expiry.
+
 Typst's HTML export is still officially experimental, so the produced markup may
 change between Typst releases.
 """
@@ -23,6 +35,7 @@ from __future__ import annotations
 import hashlib
 import re
 import subprocess
+import tempfile
 
 from django.utils.safestring import SafeString, mark_safe
 
@@ -59,21 +72,29 @@ def compile_typst(source: str, *, full_document: bool | None = None) -> SafeStri
 
     Raises:
         TypstCompileError: If the source fails to compile.
+
+    Note:
+        ``full_document=True`` returns the raw Typst HTML document and is **not**
+        sanitized (a full page cannot be cleaned as an HTML fragment). Only use
+        it with trusted input.
     """
     if source is None or not source.strip():
         return mark_safe("")
 
     if full_document is None:
         full_document = bool(get_setting("FULL_DOCUMENT"))
+    sanitize = not full_document and bool(get_setting("SANITIZE"))
 
-    cached = _cache_get(source, full_document)
+    cached = _cache_get(source, full_document, sanitize)
     if cached is not None:
         return mark_safe(cached)
 
     document = _render_html(source)
     html = document if full_document else _extract_body(document)
+    if sanitize:
+        html = _sanitize(html)
 
-    _cache_set(source, full_document, html)
+    _cache_set(source, full_document, sanitize, html)
     return mark_safe(html)
 
 
@@ -90,31 +111,74 @@ def _render_html(source: str) -> str:
 
 def _render_with_binding(source: str) -> str:
     try:
-        import typst
+        import typst  # noqa: F401 - import here for a clear error message
     except ImportError as exc:  # pragma: no cover - depends on environment
         raise TypstCompileError(
             "The 'typst' package is required for the binding backend. "
             "Install it with `pip install wagtail-typst[binding]`."
         ) from exc
 
-    # NOTE: a ``str`` input is interpreted by typst as a *file path*, so the
-    # source must be passed as ``bytes`` to compile it inline.
-    try:
-        output = typst.compile(source.encode("utf-8"), format="html")
-    except Exception as exc:  # typst raises its own error types
-        raise TypstCompileError(str(exc), diagnostics=_diagnostics(exc)) from exc
+    root = _root_dir()
+    timeout = get_setting("TIMEOUT")
+    data = source.encode("utf-8")
+    if timeout is None:
+        return _compile_binding_inprocess(data, root)
+    return _compile_binding_isolated(data, root, timeout)
 
-    if isinstance(output, list):  # multi-page output (not expected for html)
-        output = output[0]
-    return output.decode("utf-8") if isinstance(output, bytes) else str(output)
+
+def _compile_binding_inprocess(data: bytes, root: str) -> str:
+    from ._typst_worker import compile_html, diagnostics
+
+    try:
+        return compile_html(data, root).decode("utf-8")
+    except Exception as exc:  # typst raises its own error types
+        raise TypstCompileError(str(exc), diagnostics=diagnostics(exc)) from exc
+
+
+def _compile_binding_isolated(data: bytes, root: str, timeout: float) -> str:
+    """Compile in a separate process, terminating it if it overruns ``timeout``."""
+    import multiprocessing
+    import queue as queue_mod
+
+    from ._typst_worker import worker
+
+    ctx = multiprocessing.get_context("spawn")
+    result_queue = ctx.Queue()
+    proc = ctx.Process(target=worker, args=(result_queue, data, root), daemon=True)
+    proc.start()
+    try:
+        # Read before join: draining the queue first avoids a deadlock when the
+        # HTML output is larger than the pipe buffer.
+        message = result_queue.get(timeout=timeout)
+    except queue_mod.Empty:
+        raise TypstCompileError(
+            f"Typst compilation timed out after {timeout}s."
+        ) from None
+    finally:
+        if proc.is_alive():
+            proc.terminate()
+        proc.join()
+
+    if message[0] == "ok":
+        return message[1].decode("utf-8")
+    _, error_message, diagnostics = message
+    raise TypstCompileError(error_message, diagnostics=diagnostics)
 
 
 def _render_with_cli(source: str) -> str:
     cli_path = get_setting("CLI_PATH")
-    timeout = get_setting("CLI_TIMEOUT")
+    timeout = get_setting("TIMEOUT")
+    root = _root_dir()
     try:
         proc = subprocess.run(
-            [cli_path, "compile", "--features", "html", "--format", "html", "-", "-"],
+            [
+                cli_path,
+                "compile",
+                "--features", "html",
+                "--format", "html",
+                "--root", root,
+                "-", "-",
+            ],
             input=source.encode("utf-8"),
             capture_output=True,
             timeout=timeout,
@@ -147,24 +211,108 @@ def _extract_body(document: str) -> str:
     return styles + body
 
 
-def _diagnostics(exc: Exception) -> str:
-    parts = []
-    for attr in ("diagnostic", "trace", "hints"):
-        value = getattr(exc, attr, None)
-        if not value:
-            continue
-        parts.append(
-            "\n".join(value) if isinstance(value, (list, tuple)) else str(value)
-        )
-    return "\n".join(parts)
+# --- Sandbox root ----------------------------------------------------------
+
+_SANDBOX_ROOT: str | None = None
+
+
+def _root_dir() -> str:
+    """Directory that Typst file access is confined to.
+
+    Defaults to a process-wide empty temp directory so ``read()`` / ``image()``
+    resolve to nothing, neutralising file-disclosure attacks. Override with
+    ``WAGTAIL_TYPST_ROOT`` to expose a specific asset directory.
+    """
+    configured = get_setting("ROOT")
+    if configured:
+        return str(configured)
+    global _SANDBOX_ROOT
+    if _SANDBOX_ROOT is None:
+        _SANDBOX_ROOT = tempfile.mkdtemp(prefix="wagtail-typst-root-")
+    return _SANDBOX_ROOT
+
+
+# --- Sanitization ----------------------------------------------------------
+
+# Tags Typst's HTML export emits, plus MathML. ``<style>`` is kept because Typst
+# puts the MathML layout stylesheet there; its CSS content cannot execute script.
+_ALLOWED_TAGS = {
+    # Structure / block
+    "p", "div", "span", "br", "hr", "pre", "blockquote", "figure", "figcaption",
+    "h1", "h2", "h3", "h4", "h5", "h6", "section", "article", "header", "footer",
+    # Inline
+    "a", "b", "i", "em", "strong", "u", "s", "del", "ins", "sub", "sup", "small",
+    "code", "kbd", "samp", "mark", "cite", "q", "abbr", "time", "wbr", "bdi", "bdo",
+    # Lists
+    "ul", "ol", "li", "dl", "dt", "dd",
+    # Tables
+    "table", "caption", "colgroup", "col", "thead", "tbody", "tfoot", "tr", "td", "th",
+    # Media
+    "img",
+    # Typst math layout stylesheet
+    "style",
+    # MathML
+    "math", "mrow", "mi", "mo", "mn", "ms", "mtext", "mspace", "mpadded", "mphantom",
+    "menclose", "msup", "msub", "msubsup", "mfrac", "msqrt", "mroot", "munder",
+    "mover", "munderover", "mtable", "mtr", "mtd", "mlabeledtr", "maction", "merror",
+    "mstyle", "mfenced", "mglyph", "semantics", "annotation", "annotation-xml",
+}
+
+_ALLOWED_ATTRS = {
+    "*": {"class", "style", "dir", "id", "title", "lang"},
+    # "rel" is managed by nh3's link_rel, so it must not be listed here.
+    "a": {"href", "name", "target"},
+    "img": {"src", "alt", "width", "height"},
+    "col": {"span"},
+    "colgroup": {"span"},
+    "td": {"colspan", "rowspan"},
+    "th": {"colspan", "rowspan", "scope"},
+    "ol": {"start", "type", "reversed"},
+    "time": {"datetime"},
+    # MathML
+    "math": {"display", "xmlns"},
+    "mo": {
+        "lspace", "rspace", "stretchy", "fence", "separator", "accent",
+        "movablelimits", "largeop", "symmetric", "minsize", "maxsize", "form",
+    },
+    "mfrac": {"linethickness"},
+    "mspace": {"width", "height", "depth"},
+    "mpadded": {"width", "height", "depth", "lspace", "voffset"},
+    "munder": {"accentunder"},
+    "mover": {"accent"},
+    "munderover": {"accent", "accentunder"},
+    "mtable": {"columnalign", "rowalign"},
+    "mtd": {"columnalign", "rowalign", "columnspan", "rowspan"},
+    "mstyle": {"displaystyle", "scriptlevel", "mathvariant", "mathcolor", "mathbackground"},
+    "annotation": {"encoding"},
+    "annotation-xml": {"encoding"},
+}
+
+
+def _sanitize(html: str) -> str:
+    try:
+        import nh3
+    except ImportError as exc:  # pragma: no cover - nh3 is a hard dependency
+        raise TypstCompileError(
+            "The 'nh3' package is required to sanitize Typst output. Install it, "
+            "or set WAGTAIL_TYPST_SANITIZE=False only if all input is trusted."
+        ) from exc
+
+    return nh3.clean(
+        html,
+        tags=_ALLOWED_TAGS,
+        attributes=_ALLOWED_ATTRS,
+        clean_content_tags={"script"},
+        url_schemes={"http", "https", "mailto", "tel"},
+    )
 
 
 # --- Caching ---------------------------------------------------------------
 
 
-def _cache_key(source: str, full_document: bool) -> str:
+def _cache_key(source: str, full_document: bool, sanitize: bool) -> str:
     digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
-    return f"wagtail_typst:{int(full_document)}:{digest}"
+    return f"wagtail_typst:{int(full_document)}:{int(sanitize)}:{digest}"
 
 
 def _get_cache():
@@ -178,15 +326,17 @@ def _get_cache():
         return None
 
 
-def _cache_get(source: str, full_document: bool) -> str | None:
+def _cache_get(source: str, full_document: bool, sanitize: bool) -> str | None:
     cache = _get_cache()
     if cache is None:
         return None
-    return cache.get(_cache_key(source, full_document))
+    return cache.get(_cache_key(source, full_document, sanitize))
 
 
-def _cache_set(source: str, full_document: bool, html: str) -> None:
+def _cache_set(source: str, full_document: bool, sanitize: bool, html: str) -> None:
     cache = _get_cache()
     if cache is None:
         return
-    cache.set(_cache_key(source, full_document), html, get_setting("CACHE_TIMEOUT"))
+    cache.set(
+        _cache_key(source, full_document, sanitize), html, get_setting("CACHE_TIMEOUT")
+    )
