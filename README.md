@@ -15,6 +15,12 @@ template **tags/filters** that compile Typst source into HTML using Typst's
 pip install "wagtail-typst @ git+https://github.com/sakti/wagtail-typst.git@0.1.0"
 ```
 
+Or with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv add "wagtail-typst @ git+https://github.com/sakti/wagtail-typst.git@0.1.0"
+```
+
 This pulls in the [`typst`](https://pypi.org/project/typst/) Python package, so
 the Typst compiler is bundled — no external binary is required.
 
