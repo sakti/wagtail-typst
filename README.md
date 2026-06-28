@@ -12,7 +12,7 @@ template **tags/filters** that compile Typst source into HTML using Typst's
 ## Installation
 
 ```bash
-pip install wagtail-typst
+pip install "wagtail-typst @ git+https://github.com/sakti/wagtail-typst.git@0.1.0"
 ```
 
 This pulls in the [`typst`](https://pypi.org/project/typst/) Python package, so
