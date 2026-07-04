@@ -10,6 +10,15 @@
  * export matches: Libertinus Serif for body text (SIL Open Font License, see
  * fonts/OFL.txt) and DejaVu Sans Mono for code/raw (Bitstream Vera license, see
  * fonts/LICENSE-DejaVu.txt).
+ *
+ * Typst's HTML export emits only semantic markup with no presentational
+ * styling, so a minimal reading scale is applied to the .typst-content wrapper:
+ * headings, paragraphs, lists, blockquotes, code blocks and rules get sensible
+ * defaults out of the box. The rules are scoped to .typst-content and use
+ * low-specificity :where() selectors so a site's own stylesheet can override
+ * them easily. If you use a CSS reset (e.g. Tailwind's preflight) that flattens
+ * these elements, this scale restores a readable typography on top of the
+ * bundled fonts.
  */
 
 @font-face {
@@ -79,6 +88,7 @@
 .typst-content {
     font-family: "Libertinus Serif", "Linux Libertine O", "Linux Libertine",
         Georgia, "Times New Roman", serif;
+    line-height: 1.6;
 }
 
 .typst-content :where(code, pre, kbd, samp) {
@@ -86,8 +96,71 @@
         Menlo, Consolas, "Liberation Mono", monospace;
 }
 
+/* DejaVu Sans Mono has a much larger x-height than Libertinus Serif, so size
+   it down to visually match the surrounding body text. */
+.typst-content :where(code, kbd, samp, pre) {
+    font-size: 0.8em;
+}
+.typst-content pre :where(code, kbd, samp) {
+    font-size: 1em;
+}
+
 .typst-content :where(h1, h2, h3, h4, h5, h6) {
+    font-weight: 700;
+    line-height: 1.2;
     margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+.typst-content h1 {
+    font-size: 2em;
+}
+.typst-content h2 {
+    font-size: 1.5em;
+}
+.typst-content h3 {
+    font-size: 1.25em;
+}
+.typst-content h4 {
+    font-size: 1.125em;
+}
+
+.typst-content p {
+    margin: 0.75em 0;
+}
+
+.typst-content a {
+    text-decoration: underline;
+}
+
+.typst-content ul {
+    list-style: disc;
+}
+.typst-content ol {
+    list-style: decimal;
+}
+.typst-content :where(ul, ol) {
+    padding-left: 1.5em;
+    margin: 0.75em 0;
+}
+
+.typst-content blockquote {
+    border-left: 3px solid currentColor;
+    padding-left: 1em;
+    margin: 1em 0;
+    opacity: 0.85;
+}
+
+.typst-content pre {
+    padding: 0.75em 1em;
+    margin: 1em 0;
+    overflow-x: auto;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: 0.375em;
+}
+
+.typst-content hr {
+    margin: 2em 0;
+    border-top-width: 1px;
 }
 
 .typst-content table {
