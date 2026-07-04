@@ -36,9 +36,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/saktidwicahyono/wagtail-typst"
-Repository = "https://github.com/saktidwicahyono/wagtail-typst"
-Issues = "https://github.com/saktidwicahyono/wagtail-typst/issues"
+Homepage = "https://github.com/sakti/wagtail-typst"
+Repository = "https://github.com/sakti/wagtail-typst"
+Issues = "https://github.com/sakti/wagtail-typst/issues"
 
 [build-system]
 requires = ["uv_build>=0.11.24,<0.12.0"]
